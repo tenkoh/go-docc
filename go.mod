@@ -1,3 +1,3 @@
-module github.com/tenkoh/go-docc
+module github.com/tenkoh/docc
 
 go 1.17

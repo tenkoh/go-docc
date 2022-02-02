@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
+	"strings"
 )
 
 var (
 	ErrDocumentsNotFound = errors.New("the docx file does not contain word/document.xml")
+	ErrNotSupportFormat  = errors.New("the file is not supported")
 )
 
 type Document struct {
@@ -28,15 +31,34 @@ type Document struct {
 	} `xml:"body"`
 }
 
-// func Decode(fp string) ([]string, error){
-// 	ext := strings.ToLower(filepath.Ext(fp))
-// 	if ext == ".docx"{
+// Decode decodes a .docx or .doc file, then return a slice of plain text.
+// .doc file is supported only on Windows in which Microsoft Office has been installed.
+func Decode(fp string) ([]string, error) {
+	ext := strings.ToLower(filepath.Ext(fp))
+	if ext == ".doc" {
+		xfp, err := docToX(fp)
+		if err != nil {
+			return nil, fmt.Errorf("fail or not support .doc file: %w", err)
+		}
+		defer os.Remove(xfp)
+		fp = xfp
+	} else if ext != ".docx" {
+		return nil, ErrNotSupportFormat
+	}
 
-// 	}
-// }
+	xml, err := extractXML(fp)
+	if err != nil {
+		return nil, err
+	}
+	ps, err := decodeXML(xml)
+	if err != nil {
+		return nil, err
+	}
+	return ps, nil
+}
 
-func extractXML(fp string) (io.Reader, error) {
-	archive, err := zip.OpenReader(fp)
+func extractXML(docxPath string) (io.Reader, error) {
+	archive, err := zip.OpenReader(docxPath)
 	if err != nil {
 		return nil, err
 	}
