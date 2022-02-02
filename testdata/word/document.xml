@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+    <w:body>
+        <w:p>
+            <w:pPr>
+                <w:pStyle w:val="Heading1" />
+            </w:pPr>
+            <w:bookmarkStart w:id="20" w:name="header-n0" />
+            <w:r>
+                <w:t xml:space="preserve">Title</w:t>
+            </w:r>
+            <w:bookmarkEnd w:id="20" />
+        </w:p>
+        <w:p>
+            <w:pPr>
+                <w:pStyle w:val="Heading2" />
+            </w:pPr>
+            <w:bookmarkStart w:id="21" w:name="header-n2" />
+            <w:r>
+                <w:t xml:space="preserve">Subtitle</w:t>
+            </w:r>
+            <w:bookmarkEnd w:id="21" />
+        </w:p>
+        <w:p>
+            <w:pPr>
+                <w:pStyle w:val="FirstParagraph" />
+            </w:pPr>
+            <w:r>
+                <w:t xml:space="preserve">Here is a first row.</w:t>
+            </w:r>
+        </w:p>
+        <w:p>
+            <w:pPr>
+                <w:pStyle w:val="BodyText" />
+            </w:pPr>
+            <w:r>
+                <w:t xml:space="preserve">Here is a second row.</w:t>
+            </w:r>
+        </w:p>
+        <w:sectPr />
+    </w:body>
+</w:document>
