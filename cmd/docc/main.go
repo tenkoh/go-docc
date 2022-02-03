@@ -4,10 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/tenkoh/docc"
+	"github.com/tenkoh/go-docc"
 )
-
-var Version = "v0.0.1"
 
 func main() {
 	flag.Parse()
