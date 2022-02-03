@@ -34,7 +34,7 @@ Before compiling, you shall execute `go mod tidy` to get this package.
 `go install` is available.
 
 ```shell
-go install github.com/tenkoh/go-docc/cmd/docc
+go install github.com/tenkoh/go-docc/cmd/docc@latest
 ```
 
 Then, `docc` command could be used. This is a simple example.
