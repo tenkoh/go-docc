@@ -33,13 +33,6 @@ func TestDecode(t *testing.T) {
 	}
 }
 
-func TestExtractXML(t *testing.T) {
-	_, err := extractXML(filepath.Clean("./testdata/test.docx"))
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func TestDecodeXML(t *testing.T) {
 	f, err := os.Open(filepath.Clean("./testdata/word/document.xml"))
 	if err != nil {

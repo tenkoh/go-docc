@@ -2,7 +2,6 @@ package docc
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -46,18 +45,14 @@ func Decode(fp string) ([]string, error) {
 		return nil, ErrNotSupportFormat
 	}
 
-	xml, err := extractXML(fp)
-	if err != nil {
-		return nil, err
-	}
-	ps, err := decodeXML(xml)
+	ps, err := decodeDocx(fp)
 	if err != nil {
 		return nil, err
 	}
 	return ps, nil
 }
 
-func extractXML(docxPath string) (io.Reader, error) {
+func decodeDocx(docxPath string) ([]string, error) {
 	archive, err := zip.OpenReader(docxPath)
 	if err != nil {
 		return nil, err
@@ -76,13 +71,12 @@ func extractXML(docxPath string) (io.Reader, error) {
 		}
 		defer fd.Close()
 
-		b := bytes.NewBuffer(nil)
-		if _, err := io.Copy(b, fd); err != nil {
+		ps, err := decodeXML(fd)
+		if err != nil {
 			return nil, err
 		}
-		return b, nil
+		return ps, nil
 	}
-
 	return nil, ErrDocumentsNotFound
 }
 
