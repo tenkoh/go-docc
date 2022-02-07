@@ -11,10 +11,7 @@ import (
 	"strings"
 )
 
-var (
-	ErrDocumentsNotFound = errors.New("the docx file does not contain word/document.xml")
-	ErrNotSupportFormat  = errors.New("the file is not supported")
-)
+var ErrNotSupportFormat = errors.New("the file is not supported")
 
 type Document struct {
 	XMLName xml.Name `xml:"document"`
@@ -114,8 +111,6 @@ func (r *Reader) Close() error {
 
 func seekParagraph(dec *xml.Decoder) (string, error) {
 	var t string
-	// p end が見つかったら t, nilを返す
-	// t startが見つかったら　tの中身を増やす
 	for {
 		token, err := dec.Token()
 		if err != nil {
