@@ -1,8 +1,6 @@
 package docc
 
 import (
-	"errors"
-	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -15,36 +13,34 @@ var want = []string{
 	"Here is a second row.",
 }
 
-func TestDecode(t *testing.T) {
-	fp := "./testdata/test.docx"
-	got, err := Decode(fp)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-
-	fp = "tmp.txt"
-	_, err = Decode(fp)
-	if !errors.Is(err, ErrNotSupportFormat) {
-		t.Errorf("unexpected type of error: %s", err)
-	}
-}
-
-func TestDecodeXML(t *testing.T) {
-	f, err := os.Open(filepath.Clean("./testdata/word/document.xml"))
+func TestReadAll(t *testing.T) {
+	fp := filepath.Clean("./testdata/test.docx")
+	r, err := NewReader(fp)
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
-	got, err := decodeXML(f)
+	defer r.Close()
+	got, err := r.ReadAll()
 	if err != nil {
-		t.Error(err)
-		return
+		panic(err)
 	}
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("want %v, got %v", want, got)
+	}
+}
+
+func TestRead(t *testing.T) {
+	fp := filepath.Clean("./testdata/test.docx")
+	r, err := NewReader(fp)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Close()
+	got, err := r.Read()
+	if err != nil {
+		panic(err)
+	}
+	if want[0] != got {
+		t.Errorf("want %s, got %s", want[0], got)
 	}
 }
