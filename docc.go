@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -105,6 +106,9 @@ func (r *Reader) ReadAll() ([]string, error) {
 func (r *Reader) Close() error {
 	r.xml.Close()
 	r.docx.Close()
+	if r.fromDoc {
+		os.Remove(r.docxPath)
+	}
 	return nil
 }
 
