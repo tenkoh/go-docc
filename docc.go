@@ -44,6 +44,8 @@ type Reader struct {
 	dec      *xml.Decoder
 }
 
+// NewReader generetes a Reader struct.
+// After reading, the Reader struct shall be Close().
 func NewReader(docxPath string) (*Reader, error) {
 	r := new(Reader)
 	r.docxPath = docxPath
@@ -75,6 +77,8 @@ func NewReader(docxPath string) (*Reader, error) {
 	return r, nil
 }
 
+// Read reads the .docx file by a paragraph.
+// When no paragraphs are remained to read, io.EOF error is returned.
 func (r *Reader) Read() (string, error) {
 	err := seekNextTag(r.dec, "p")
 	if err != nil {
@@ -87,6 +91,7 @@ func (r *Reader) Read() (string, error) {
 	return p, nil
 }
 
+// ReadAll reads the whole .docx file.
 func (r *Reader) ReadAll() ([]string, error) {
 	ps := []string{}
 	for {
