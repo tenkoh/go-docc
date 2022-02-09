@@ -1,6 +1,9 @@
 # docc
 Simple ".docx" converter implemented by Go. Convert ".docx" to plain text.
 
+## Note
+This repository is an alpha version. Some disruptive changes could be applied.
+
 ## License
 MIT
 
@@ -32,7 +35,7 @@ func main(){
 }
 ```
 
-If you want read the document by a line, the below example is useful.
+If you want read the document by a paragraph, the below example is useful.
 
 ```go
 package main
@@ -60,7 +63,7 @@ func main(){
 ```
 
 
-Before compiling, you shall execute `go mod tidy` to get this package.
+Before compiling, you shall execute `go mod tidy` or `go get github.com/tenkoh/go-docc`to get this package.
 
 ### As a binary
 `go install` is available.
