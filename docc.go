@@ -4,109 +4,121 @@ import (
 	"archive/zip"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-var ErrNotSupportFormat = errors.New("the file is not supported")
+var (
+	ErrNotSupportFormat = errors.New("the file is not supported")
+	xmlParagraph        = "p"
+	xmlTab              = "t"
+)
 
-type Document struct {
-	XMLName xml.Name `xml:"document"`
-	Body    struct {
-		P []struct {
-			R []struct {
-				T struct {
-					Text  string `xml:",chardata"`
-					Space string `xml:"space,attr"`
-				} `xml:"t"`
-			} `xml:"r"`
-		} `xml:"p"`
-	} `xml:"body"`
-}
-
-type Paragraph struct {
-	R []struct {
-		T struct {
-			Text  string `xml:",chardata"`
-			Space string `xml:"space,attr"`
-		} `xml:"t"`
-	} `xml:"r"`
+type FileReader struct {
+	fileName string
+	xml      io.ReadCloser
+	decoder  *xml.Decoder
 }
 
 type Reader struct {
-	docxPath string
-	fromDoc  bool
-	docx     *zip.ReadCloser
-	xml      io.ReadCloser
-	dec      *xml.Decoder
+	docxPath    string
+	fromDoc     bool
+	docx        *zip.ReadCloser
+	fileReaders []FileReader
 }
 
 // NewReader generetes a Reader struct.
 // After reading, the Reader struct shall be Close().
 func NewReader(docxPath string) (*Reader, error) {
-	r := new(Reader)
-	r.docxPath = docxPath
+	reader := new(Reader)
+	reader.docxPath = docxPath
 	ext := strings.ToLower(filepath.Ext(docxPath))
-	if ext == ".doc" {
-		xfp, err := docToX(docxPath)
-		if err != nil {
-			return nil, fmt.Errorf("fail or not support .doc file: %w", err)
-		}
-		r.docxPath = xfp
-		r.fromDoc = true
-	} else if ext != ".docx" {
+	if ext != ".docx" {
 		return nil, ErrNotSupportFormat
 	}
 
-	a, err := zip.OpenReader(r.docxPath)
+	zipReadCloser, err := zip.OpenReader(reader.docxPath)
 	if err != nil {
 		return nil, err
 	}
-	r.docx = a
 
-	f, err := a.Open("word/document.xml")
-	if err != nil {
-		return nil, err
-	}
-	r.xml = f
-	r.dec = xml.NewDecoder(f)
+	var fileReaders []FileReader
+	for _, file := range zipReadCloser.File {
+		if file.Name == "word/document.xml" ||
+			strings.Contains(file.Name, "header") ||
+			strings.Contains(file.Name, "footer") ||
+			strings.Contains(file.Name, "footnotes") {
+			openedFile, err := zipReadCloser.Open(file.Name)
+			if err != nil {
+				return nil, err
+			}
 
-	return r, nil
-}
-
-// Read reads the .docx file by a paragraph.
-// When no paragraphs are remained to read, io.EOF error is returned.
-func (r *Reader) Read() (string, error) {
-	err := seekNextTag(r.dec, "p")
-	if err != nil {
-		return "", err
-	}
-	p, err := seekParagraph(r.dec)
-	if err != nil {
-		return "", err
-	}
-	return p, nil
-}
-
-// ReadAll reads the whole .docx file.
-func (r *Reader) ReadAll() ([]string, error) {
-	ps := []string{}
-	for {
-		p, err := r.Read()
-		if err == io.EOF {
-			return ps, nil
-		} else if err != nil {
-			return nil, err
+			fileReaders = append(fileReaders, FileReader{
+				fileName: file.Name,
+				xml:      openedFile,
+				decoder:  xml.NewDecoder(openedFile),
+			})
 		}
-		ps = append(ps, p)
 	}
+
+	reader.fileReaders = fileReaders
+	reader.docx = zipReadCloser
+
+	return reader, nil
+}
+
+func (r *Reader) read(decoder *xml.Decoder) (string, error) {
+	err := seekNextTag(decoder, xmlParagraph)
+	if err != nil {
+		return "", err
+	}
+	paragraph, err := seekParagraph(decoder)
+	if err != nil {
+		return "", err
+	}
+	return paragraph, nil
+}
+
+func (r *Reader) readSingleFile(decoder *xml.Decoder) (string, error) {
+	var content strings.Builder
+	for {
+		paragraph, err := r.read(decoder)
+		if err == io.EOF {
+			return content.String(), nil
+		} else if err != nil {
+			return "", err
+		}
+		content.WriteString(paragraph)
+		content.WriteString(" ")
+	}
+}
+
+func (r *Reader) ReadAllFiles() (headerValue, contentValue, footerValue string, err error) {
+	var header, footer, content strings.Builder
+	for _, fileReader := range r.fileReaders {
+		fileContent, err := r.readSingleFile(fileReader.decoder)
+		if err != nil {
+			return "", "", "", err
+		}
+
+		if strings.Contains(fileReader.fileName, "header") {
+			header.WriteString(fileContent)
+		} else if strings.Contains(fileReader.fileName, "footer") {
+			footer.WriteString(fileContent)
+		} else {
+			content.WriteString(fileContent)
+		}
+	}
+
+	return header.String(), content.String(), footer.String(), nil
 }
 
 func (r *Reader) Close() error {
-	r.xml.Close()
+	for _, fileReader := range r.fileReaders {
+		fileReader.xml.Close()
+	}
 	r.docx.Close()
 	if r.fromDoc {
 		os.Remove(r.docxPath)
@@ -114,56 +126,56 @@ func (r *Reader) Close() error {
 	return nil
 }
 
-func seekParagraph(dec *xml.Decoder) (string, error) {
-	var t string
+func seekText(decoder *xml.Decoder) (string, error) {
 	for {
-		token, err := dec.Token()
+		token, err := decoder.Token()
 		if err != nil {
 			return "", err
 		}
-		switch tt := token.(type) {
-		case xml.EndElement:
-			if tt.Name.Local == "p" {
-				return t, nil
-			}
-		case xml.StartElement:
-			if tt.Name.Local == "t" {
-				text, err := seekText(dec)
-				if err != nil {
-					return "", err
-				}
-				t = t + text
-			}
-		}
-	}
-}
-
-func seekText(dec *xml.Decoder) (string, error) {
-	for {
-		token, err := dec.Token()
-		if err != nil {
-			return "", err
-		}
-		switch tt := token.(type) {
+		switch tokenType := token.(type) {
 		case xml.CharData:
-			return string(tt), nil
+			return string(tokenType), nil
 		case xml.EndElement:
 			return "", nil
 		}
 	}
 }
 
-func seekNextTag(dec *xml.Decoder, tag string) error {
+func seekParagraph(decoder *xml.Decoder) (string, error) {
+	var paragraph strings.Builder
 	for {
-		token, err := dec.Token()
+		token, err := decoder.Token()
+		if err != nil {
+			return "", err
+		}
+		switch tokenType := token.(type) {
+		case xml.EndElement:
+			if tokenType.Name.Local == xmlParagraph {
+				return paragraph.String(), nil
+			}
+		case xml.StartElement:
+			if tokenType.Name.Local == xmlTab {
+				text, err := seekText(decoder)
+				if err != nil {
+					return "", err
+				}
+				paragraph.WriteString(text)
+			}
+		}
+	}
+}
+
+func seekNextTag(decoder *xml.Decoder, tag string) error {
+	for {
+		token, err := decoder.Token()
 		if err != nil {
 			return err
 		}
-		t, ok := token.(xml.StartElement)
+		tokenTag, ok := token.(xml.StartElement)
 		if !ok {
 			continue
 		}
-		if t.Name.Local != tag {
+		if tokenTag.Name.Local != tag {
 			continue
 		}
 		break
